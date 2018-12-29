@@ -22,7 +22,7 @@ export default ((req, res) => {
 
     const token = createJWT({
         sessionData: user,
-        maxAge: 30,
+        maxAge: 600,
     });
 
     res.status(200).send(token);
