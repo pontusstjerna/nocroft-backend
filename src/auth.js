@@ -25,5 +25,5 @@ export default ((req, res) => {
         maxAge: 30,
     });
 
-    res.status(200).json(token);
+    res.status(200).send(token);
 });
