@@ -12,7 +12,7 @@ const authorizeUserPassword = userPassword => {
     return maybeUser.split(':')[0];
 }
 
-export default ((req, res) => {
+export const login = ((req, res) => {
     const user = authorizeUserPassword(req.body);
 
     if (!user) {
@@ -26,4 +26,8 @@ export default ((req, res) => {
     });
 
     res.status(200).send(token);
+});
+
+export const checkLogin = ((req, res) => {
+    res.status(200).send(`Welcome ${req.user}, I have missed you. This is the backend calling. :)`);
 });
