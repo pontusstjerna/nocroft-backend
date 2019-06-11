@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import { login, checkLogin } from './auth.js'
 import video from './video.js';
 import { config } from 'dotenv';
-import { verifyJWT_MW, checkAuthorized } from './jwt.js';
+import { verifyJWT_MW, checkSocketAuthorized } from './jwt.js';
 
 config();
 
@@ -30,11 +30,11 @@ app.use('/socket.io', (req, res) => {
 
 proxy.on('proxyReqWs', (proxyReqWs, req, res) => {
 
-    console.log('Got socket request in proxy from ' + req.headers.host);
+    console.log('Got socket request in proxy from ' + req.headers.origin);
 })
 
 proxy.on('proxyReq', (proxyReq, req, res) => {
-    console.log('Got request in proxy from ' + req.headers.host);
+    console.log('Got request in proxy from ' + req.headers.origin);
 })
 
 proxy.on('error', err => {
@@ -42,8 +42,9 @@ proxy.on('error', err => {
 })
 
 server.on('upgrade', (req, socket, header) => {
-    console.log('Proxying upgrade request');
-    checkAuthorized(req).then(({authorized, code, status}) => {
+    console.log('Proxying upgrade request from ' + req.headers.origin);
+    console.log(JSON.stringify(req.headers));
+    checkSocketAuthorized(req).then(({authorized, code, status}) => {
         if (authorized) {
             proxy.ws(req, socket, header);
         } else {

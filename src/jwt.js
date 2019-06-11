@@ -23,11 +23,11 @@ export const verifyJWT_MW = (req, res, next) => {
     }
 }
 
-export const checkAuthorized = (req) => {
-    const header = req.headers.authorization;
+export const checkSocketAuthorized = req => {
+    const authHeader = req.headers.authorization;
 
     return new Promise(resolve => {
-        if (header) {
+        if (authHeader) {
             const splitHeader = header.split(' ');
 
             if (splitHeader[0] === 'bearer') {
