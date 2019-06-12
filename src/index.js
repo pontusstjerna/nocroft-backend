@@ -25,11 +25,18 @@ app.get('/video', verifyJWT_MW, video);
 
 app.use('/socket.io', (req, res) => {
     console.log('Got socket request. Send to proxy.');
-    proxy.web(req, res, {target: 'http://localhost:4000/socket.io'});
+    checkSocketAuthorized(req).then(({authorized, code, status}) => {
+        if (authorized) {
+            console.log('Socket authorized.');
+            proxy.web(req, res, {target: 'http://localhost:4000/socket.io'});
+        } else {
+            console.log('Socket request failed: ' + code + ": " + status);
+            res.status(code).send(status);
+        }
+    })
 });
 
 proxy.on('proxyReqWs', (proxyReqWs, req, res) => {
-
     console.log('Got socket request in proxy from ' + req.headers.origin);
 })
 
@@ -42,16 +49,7 @@ proxy.on('error', err => {
 })
 
 server.on('upgrade', (req, socket, header) => {
-    console.log('Proxying upgrade request from ' + req.headers.origin);
-    console.log(JSON.stringify(req.headers));
-    checkSocketAuthorized(req).then(({authorized, code, status}) => {
-        if (authorized) {
-            proxy.ws(req, socket, header);
-        } else {
-            console.log('Socket upgrade request failed: ' + code + ": " + status);
-            socket.end(code + ': ' + status);
-        }
-    })
+    proxy.ws(req, socket, header);
 });
 
 server.listen(port, () => console.log(`Server listening on ${port}.`))

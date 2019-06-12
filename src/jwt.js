@@ -28,7 +28,7 @@ export const checkSocketAuthorized = req => {
 
     return new Promise(resolve => {
         if (authHeader) {
-            const splitHeader = header.split(' ');
+            const splitHeader = authHeader.split(' ');
 
             if (splitHeader[0] === 'bearer') {
                 const token = splitHeader[1];
@@ -36,7 +36,7 @@ export const checkSocketAuthorized = req => {
                 verifyJWT(token).then(decodedToken => {
                     req.user = decodedToken.data;
                 }).catch(err => {
-                    resolve(false, 401, "Unauthorized: " + err.message);
+                    resolve({authorized: false, code: 401, status: "Unauthorized: " + err.message});
                 }).then(() => resolve({authorized: true, code: 200, status: 'OK'}));
             } else {
                 resolve({authorized: false, code: 400, status: 'Invalid authorization header.'});
