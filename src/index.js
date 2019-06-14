@@ -12,7 +12,7 @@ config();
 const app = express();
 const port = 8080;
 const proxy = httpProxy.createProxyServer({
-    target: 'http://localhost:4000',
+    target: process.env.PROXY_TARGET,
     ws: true
 });
 const server = http.createServer(app);
@@ -28,13 +28,18 @@ app.use('/socket.io', (req, res) => {
     checkSocketAuthorized(req).then(({authorized, code, status}) => {
         if (authorized) {
             console.log('Socket authorized.');
-            proxy.web(req, res, {target: 'http://localhost:4000/socket.io'});
+            proxy.web(req, res, {target: process.env.PROXY_TARGET + '/socket.io'});
         } else {
             console.log('Socket request failed: ' + code + ": " + status);
             res.status(code).send(status);
         }
     })
 });
+
+app.use('/video', (req, res) => {
+    console.log('Got video socket request. Send to proxy.');
+    proxy.ws(req, res, {target: process.env.PROXY_VIDEO_TARGET});
+})
 
 proxy.on('proxyReqWs', (proxyReqWs, req, res) => {
     console.log('Got socket request in proxy from ' + req.headers.origin);
