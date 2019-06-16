@@ -1,4 +1,4 @@
-import { verifyJWT, createJWT } from './jwt.js';
+import { verifyJWT, createJWT, verifyJWT_MW} from './jwt.js';
 import btoa from 'btoa';
 
 const authorizeUserPassword = userPassword => {
@@ -28,6 +28,34 @@ export const login = ((req, res) => {
     res.status(200).send(token);
 });
 
+export const checkSocketAuthorized = req => {
+    const authHeader = req.headers.authorization;
+
+    return new Promise(resolve => {
+        if (authHeader) {
+            const splitHeader = authHeader.split(' ');
+
+            if (splitHeader[0] === 'bearer') {
+                const token = splitHeader[1];
+
+                verifyJWT(token).then(decodedToken => {
+                    req.user = decodedToken.data;
+                }).catch(err => {
+                    resolve({authorized: false, code: 401, status: "Unauthorized: " + err.message});
+                }).then(() => resolve({authorized: true, code: 200, status: 'OK'}));
+            } else {
+                resolve({authorized: false, code: 400, status: 'Invalid authorization header.'});
+            }
+        } else {
+            resolve({authorized: false, code: 400, status: 'Unauthorized (no authorization header).'});
+        }
+    });
+};
+
 export const checkLogin = ((req, res) => {
     res.status(200).send(`Welcome ${req.user}, I have missed you. This is the backend calling. :)`);
+});
+
+export const getAccessToken = ((req, res) => {
+    verifyJWT_MW(req, res, () => res.status(200).send(createJWT({maxAge: 2, sessionData: req.user})));
 });

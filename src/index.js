@@ -1,11 +1,12 @@
 import express from 'express';
 import http from 'http';
+import url from 'url';
 import httpProxy from 'http-proxy';
 import bodyParser from 'body-parser';
-import { login, checkLogin } from './auth.js'
+import { login, checkLogin, getAccessToken, checkSocketAuthorized } from './auth.js'
 import video from './video.js';
 import { config } from 'dotenv';
-import { verifyJWT_MW, checkSocketAuthorized } from './jwt.js';
+import { verifyJWT_MW, verifyJWT } from './jwt.js';
 
 config();
 
@@ -20,6 +21,7 @@ const server = http.createServer(app);
 app.use(bodyParser.text());
 
 app.post('/login', login);
+app.get('/access-token', verifyJWT_MW, getAccessToken);
 app.get('/login', verifyJWT_MW, checkLogin);
 app.get('/video', verifyJWT_MW, video);
 
@@ -54,8 +56,14 @@ proxy.on('error', err => {
 })
 
 server.on('upgrade', (req, socket, header) => {
-    if (req.url === '/video') {
-        proxy.ws(req, socket, header, {target: process.env.PROXY_VIDEO_TARGET});
+    if (req.url.startsWith('/video')) {
+        const queryParameters = url.parse(req.url, true).query;
+        verifyJWT(queryParameters.access_token)
+            .then(() => proxy.ws(req, socket, header, {target: process.env.PROXY_VIDEO_TARGET}))
+            .catch(() =>{
+                console.log('Unauthorized video socket listener!!!');
+                socket.destroy();
+            });
     } else {
         proxy.ws(req, socket, header);
     }

@@ -23,31 +23,7 @@ export const verifyJWT_MW = (req, res, next) => {
     }
 }
 
-export const checkSocketAuthorized = req => {
-    const authHeader = req.headers.authorization;
-
-    return new Promise(resolve => {
-        if (authHeader) {
-            const splitHeader = authHeader.split(' ');
-
-            if (splitHeader[0] === 'bearer') {
-                const token = splitHeader[1];
-
-                verifyJWT(token).then(decodedToken => {
-                    req.user = decodedToken.data;
-                }).catch(err => {
-                    resolve({authorized: false, code: 401, status: "Unauthorized: " + err.message});
-                }).then(() => resolve({authorized: true, code: 200, status: 'OK'}));
-            } else {
-                resolve({authorized: false, code: 400, status: 'Invalid authorization header.'});
-            }
-        } else {
-            resolve({authorized: false, code: 400, status: 'Unauthorized (no authorization header).'});
-        }
-    });
-}
-
-const verifyJWT = token => {
+export const verifyJWT = token => {
     return new Promise((resolve, reject) => {
         jwt.verify(token, process.env.JWT_SECRET, (err, decodedToken) => {
             if (err || !decodedToken) {
