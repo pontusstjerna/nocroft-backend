@@ -59,7 +59,10 @@ server.on('upgrade', (req, socket, header) => {
     if (req.url.startsWith('/video')) {
         const queryParameters = url.parse(req.url, true).query;
         verifyJWT(queryParameters.access_token)
-            .then(() => proxy.ws(req, socket, header, {target: process.env.PROXY_VIDEO_TARGET}))
+            .then(() => {
+                console.log('Video socket authenticated.');
+                proxy.ws(req, socket, header, {target: process.env.PROXY_VIDEO_TARGET})
+            })
             .catch(() =>{
                 console.log('Unauthorized video socket listener!!!');
                 socket.destroy();
