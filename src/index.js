@@ -12,6 +12,8 @@ config();
 
 const app = express();
 const port = 8080;
+
+// TODO: Create one proxy for each video streamer
 const proxy = httpProxy.createProxyServer({
     target: process.env.PROXY_TARGET,
     ws: true
@@ -25,6 +27,7 @@ app.get('/access-token', verifyJWT_MW, getAccessToken);
 app.get('/login', verifyJWT_MW, checkLogin);
 app.get('/video', verifyJWT_MW, video);
 
+// SOCKET.IO
 app.use('/socket.io', (req, res) => {
     checkSocketAuthorized(req).then(({authorized, code, status}) => {
         if (authorized) {
@@ -36,12 +39,6 @@ app.use('/socket.io', (req, res) => {
         }
     })
 });
-
-/*app.use('/video', (req, res) => {
-    console.log('Got video socket request. Send to proxy.');
-    console.log('Sending to ' + process.env.PROXY_VIDEO_TARGET);
-    proxy.ws(req, res, null, {target: process.env.PROXY_VIDEO_TARGET});
-})*/
 
 proxy.on('proxyReqWs', (proxyReqWs, req, res) => {
     //console.log('Got socket request in proxy from ' + req.headers.host);
@@ -55,6 +52,7 @@ proxy.on('error', err => {
     //console.log(`ERROR with socket: ${err.code}`);
 })
 
+// VIDEO
 server.on('upgrade', (req, socket, header) => {
     if (req.url.startsWith('/video')) {
         const queryParameters = url.parse(req.url, true).query;
