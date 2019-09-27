@@ -13,7 +13,6 @@ config();
 const app = express();
 const port = 8080;
 
-// TODO: Create one proxy for each video streamer
 const proxy = httpProxy.createProxyServer({
     target: process.env.PROXY_TARGET,
     ws: true
@@ -25,7 +24,7 @@ app.use(bodyParser.text());
 app.post('/login', login);
 app.get('/access-token', verifyJWT_MW, getAccessToken);
 app.get('/login', verifyJWT_MW, checkLogin);
-app.get('/video', verifyJWT_MW, video);
+process.env.VIDEO_ENDPOINTS.split(';').forEach(endpoint => app.get(endpoint, verifyJWT_MW, video));
 
 // SOCKET.IO
 app.use('/socket.io', (req, res) => {
@@ -54,15 +53,27 @@ proxy.on('error', err => {
 
 // VIDEO
 server.on('upgrade', (req, socket, header) => {
-    if (req.url.startsWith('/video')) {
+    const videoEndpoints = process.env.VIDEO_ENDPOINTS.split(';');
+    if (videoEndpoints.some(e => req.url.startsWith(e))) {
         const queryParameters = url.parse(req.url, true).query;
         verifyJWT(queryParameters.access_token)
             .then(() => {
-                console.log('Video socket authenticated.');
-                proxy.ws(req, socket, header, {target: process.env.PROXY_VIDEO_TARGET})
+                let endpoint;
+                let proxyTarget;
+
+                for (let i = 0; i < videoEndpoints.length; i++) {
+                    if (req.url.startsWith(videoEndpoints[i])) {
+                        endpoint = videoEndpoints[i];
+                        proxyTarget = process.env.PROXY_VIDEO_TARGETS.split(';')[i];
+                    }
+                }
+
+                console.log(`Video endpoint "${endpoint}" was authorized, proxying to ${proxyTarget}`);
+                proxy.ws(req, socket, header, {target: proxyTarget})
             })
-            .catch(() =>{
-                console.log('Unauthorized video socket listener!!!');
+            .catch(e =>{
+                console.log(e.message);
+                console.log('Unauthorized video socket listener!');
                 socket.destroy();
             });
     } else {
