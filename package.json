@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "nodemon src/index.js username password --exec babel-node --presets es2015,stage-2",
+    "test-video-stream": "nodemon src/videoTest.js --exec babel-node --presets es2015,stage-2",
     "build": "babel src --out-dir dist --copy-files",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -26,7 +27,9 @@
     "http-proxy": "^1.17.0",
     "jsonwebtoken": "^8.4.0",
     "mqtt": "^4.2.6",
-    "socket.io": "^3.1.1"
+    "socket.io": "^3.1.1",
+    "socketio-wildcard": "^2.0.0",
+    "ws": "^7.4.3"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

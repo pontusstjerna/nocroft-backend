@@ -2,11 +2,12 @@ import express from "express"
 import http from "http"
 import bodyParser from "body-parser"
 import { login, checkLogin, getAccessToken, ioVerifyJWT_MW } from "./auth.js"
-import video from "./video.js"
+import video, { startVideoStreamingServer } from "./video.js"
 import { config } from "dotenv"
 import { verifyJWT_MW } from "./jwt.js"
 import mqtt from "mqtt"
 import startSocket from "socket.io"
+import wildcardMW from "socketio-wildcard"
 
 config()
 
@@ -27,11 +28,7 @@ mqttClient.on("connect", () => {
   console.log("mqtt client connected successfully")
   // TODO: Possibly allow for client to specify which robot to control
   mqttClient.subscribe(["robotpi/started", "robotpi/status"], error => {
-    if (error) {
-      console.log(error)
-    } else {
-      console.log("Subscribed to topics with mqtt")
-    }
+    if (error) console.log(error)
   })
 
   mqttClient.on("message", (topic, message) => {
@@ -39,10 +36,10 @@ mqttClient.on("connect", () => {
 
     switch (topic) {
       case "robotpi/started":
-        io.emit("started", message.toString())
+        io.of("/robotpi").emit("started", message.toString())
         break
       case "robotpi/status":
-        io.emit("status", message.toString())
+        io.of("/robotpi").emit("status", message.toString())
         break
     }
   })
@@ -59,10 +56,25 @@ process.env.VIDEO_ENDPOINTS.split(";").forEach(endpoint =>
   app.get(endpoint, verifyJWT_MW, video)
 )
 
-io.use(ioVerifyJWT_MW).on("connection", socket => {
-  socket.on("started", () => mqttClient.publish("robotpi", "started"))
-  socket.on("status", () => mqttClient.publish("robotpi", "status"))
+app.use("/video_stream/:source", (request, response) => {
+  const source = request.params.source
+  response.connection.setTimeout(0)
+  console.log(`Video stream from "${source}" started`)
+
+  // Stream of data is received, broadcast to socket listeners
+  request.on("data", data => io.of("/video").emit("video_data", data))
+
+  request.on("end", () => console.log(`Video stream from "${source} ended`))
 })
+
+// io.use(ioVerifyJWT_MW)
+
+io.of("/robotpi")
+  .use(wildcardMW())
+  .on("connection", socket => {
+    // Forward all socket messages to mqtt
+    socket.on("*", ({ data }) => mqttClient.publish("robotpi", data[0]))
+  })
 
 // SOCKET.IO
 /*app.use("/socket.io", (req, res) => {
@@ -111,4 +123,5 @@ server.on("upgrade", (req, socket, header) => {
 })
 */
 
+//startVideoStreamingServer(port + 1)
 server.listen(port, () => console.log(`Server listening on ${port}.`))
