@@ -1,9 +1,9 @@
 import { verifyJWT, createJWT, verifyJWT_MW } from "./jwt.js"
 import btoa from "btoa"
 
-const authorizeUserPassword = (userPassword) => {
+const authorizeUserPassword = userPassword => {
   const maybeUser = process.env.USERS.split(";").find(
-    (config) => userPassword === btoa(config)
+    config => userPassword === btoa(config)
   )
 
   if (!maybeUser) {
@@ -32,11 +32,11 @@ export const login = (req, res) => {
 
 export const ioVerifyJWT_MW = (socket, next) =>
   verifyJWT(socket.handshake.auth.token)
-    .then((decoded) => {
+    .then(decoded => {
       socket.decoded = decoded
       next()
     })
-    .catch((error) => next(error))
+    .catch(error => next(error))
 
 export const checkLogin = (req, res) => {
   res
@@ -44,10 +44,4 @@ export const checkLogin = (req, res) => {
     .send(
       `Welcome ${req.user}, I have missed you. This is the backend calling. :)`
     )
-}
-
-export const getAccessToken = (req, res) => {
-  verifyJWT_MW(req, res, () =>
-    res.status(200).send(createJWT({ maxAge: 2, sessionData: req.user }))
-  )
 }
