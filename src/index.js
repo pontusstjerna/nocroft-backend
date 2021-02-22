@@ -57,7 +57,7 @@ app.use("/video_stream/:source", (request, response) => {
   console.log(`Video stream from "${source}" started`)
 
   // Stream of data is received, broadcast to socket listeners
-  request.on("data", data => io.of("/video").emit("video_data", data))
+  request.on("data", data => io.of(`/video/${source}`).emit("video_data", data))
 
   request.on("end", () => console.log(`Video stream from "${source} ended`))
 })
