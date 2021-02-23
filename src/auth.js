@@ -24,7 +24,7 @@ export const login = (req, res) => {
 
   const token = createJWT({
     sessionData: user,
-    maxAge: 600,
+    maxAge: 3600 * 2,
   })
 
   res.status(200).send(token)

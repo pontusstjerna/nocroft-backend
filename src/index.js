@@ -13,7 +13,7 @@ config()
 const app = express()
 const port = 8080
 
-const server = http.createServer(app)
+const server = http.Server(app)
 const io = startSocket(server)
 
 const mqttClient = mqtt.connect({
@@ -51,18 +51,32 @@ app.use(bodyParser.text())
 app.post("/login", login)
 app.get("/login", verifyJWT_MW, checkLogin)
 
+io.use(ioVerifyJWT_MW)
+
 app.use("/video_stream/:source", (request, response) => {
-  const source = request.params.source
   response.connection.setTimeout(0)
+  const source = request.params.source
   console.log(`Video stream from "${source}" started`)
 
   // Stream of data is received, broadcast to socket listeners
-  request.on("data", data => io.of(`/video/${source}`).emit("video_data", data))
+  request.on("data", data => {
+    io.of(`/video`).to(source).emit("video_data", data)
+  })
 
-  request.on("end", () => console.log(`Video stream from "${source} ended`))
+  request.on("end", () => {
+    console.log(`Video stream from "${source} ended`)
+  })
 })
 
-io.use(ioVerifyJWT_MW)
+io.of("/video").on("connection", socket => {
+  // Add video listeners to specific rooms for each video stream
+  const room = socket.handshake.auth.room
+  console.log(`Video listener joined room "${room}"`)
+  socket.join(room)
+
+  // Tell the video streamer to start streaming!
+  mqttClient.publish(room, "start")
+})
 
 io.of("/robotpi")
   .use(wildcardMW())
