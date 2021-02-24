@@ -30,13 +30,17 @@ export const login = (req, res) => {
   res.status(200).send(token)
 }
 
-export const ioVerifyJWT_MW = (socket, next) =>
+export const ioVerifyJWT_MW = (socket, next) => {
   verifyJWT(socket.handshake.auth.token)
     .then(decoded => {
       socket.decoded = decoded
       next()
     })
-    .catch(error => next(error))
+    .catch(error => {
+      console.log(error)
+      next(error)
+    })
+}
 
 export const checkLogin = (req, res) => {
   res

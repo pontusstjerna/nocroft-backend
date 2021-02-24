@@ -31,8 +31,6 @@ mqttClient.on("connect", () => {
   })
 
   mqttClient.on("message", (topic, message) => {
-    console.log({ topic, message: message.toString() })
-
     switch (topic) {
       case "robotpi/started":
         io.of("/robotpi").emit("started", message.toString())
@@ -51,8 +49,6 @@ app.use(bodyParser.text())
 app.post("/login", login)
 app.get("/login", verifyJWT_MW, checkLogin)
 
-io.use(ioVerifyJWT_MW)
-
 app.use("/video_stream/:source", (request, response) => {
   response.connection.setTimeout(0)
   const source = request.params.source
@@ -68,17 +64,19 @@ app.use("/video_stream/:source", (request, response) => {
   })
 })
 
-io.of("/video").on("connection", socket => {
-  // Add video listeners to specific rooms for each video stream
-  const room = socket.handshake.auth.room
-  console.log(`Video listener joined room "${room}"`)
-  socket.join(room)
+io.of("/video")
+  .use(ioVerifyJWT_MW)
+  .on("connection", socket => {
+    // Add video listeners to specific rooms for each video stream
+    const room = socket.handshake.auth.room
+    socket.join(room)
 
-  // Tell the video streamer to start streaming!
-  mqttClient.publish(room, "start")
-})
+    // Tell the video streamer to start streaming!
+    mqttClient.publish(room, "start")
+  })
 
 io.of("/robotpi")
+  .use(ioVerifyJWT_MW)
   .use(wildcardMW())
   .on("connection", socket => {
     // Forward all socket messages to mqtt
