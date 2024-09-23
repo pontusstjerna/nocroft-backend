@@ -5,7 +5,7 @@ import { login, checkLogin, ioVerifyJWT_MW } from "./auth.js"
 import { config } from "dotenv"
 import { verifyJWT_MW } from "./jwt.js"
 import mqtt from "mqtt"
-import startSocket from "socket.io"
+import { Server } from "socket.io"
 import wildcardMW from "socketio-wildcard"
 
 config()
@@ -14,7 +14,7 @@ const app = express()
 const port = 8080
 
 const server = http.Server(app)
-const io = startSocket(server)
+const io = new Server(server)
 
 const mqttClient = mqtt.connect({
   hostname: process.env.MQTT_BROKER_URL || "mqtt://127.0.0.1",
