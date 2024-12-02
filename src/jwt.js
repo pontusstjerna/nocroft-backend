@@ -1,11 +1,11 @@
 import jwt from 'jsonwebtoken';
 
-export const verifyJWT_MW = (req, res, next) => {
+export const verifyJWT = (req, res, next) => {
     const header = req.headers.authorization;
 
     if (header) {
         const splitHeader = header.split(' ');
-        
+
         if (splitHeader[0] === 'bearer') {
             const token = splitHeader[1];
 
@@ -13,13 +13,13 @@ export const verifyJWT_MW = (req, res, next) => {
                 req.user = decodedToken.data;
                 next();
             }).catch(err => {
-                res.status(401).send("Unauthorized: " + err.message);           
+                res.status(401).send("Unauthorized: " + err.message);
             });
         } else {
-            res.status(400).send("Invalid authorization header.");           
+            res.status(400).send("Invalid authorization header.");
         }
     } else {
-        res.status(400).send("Unauthorized (no authorization header).");           
+        res.status(400).send("Unauthorized (no authorization header).");
     }
 }
 
@@ -49,8 +49,8 @@ export const createJWT = (options) => {
     const token = jwt.sign(
         {
             data: sessionData
-        }, 
-        process.env.JWT_SECRET, 
+        },
+        process.env.JWT_SECRET,
         {
             expiresIn: maxAge,
             algorithm: 'HS256'

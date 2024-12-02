@@ -10,11 +10,16 @@ import wildcardMW from "socketio-wildcard"
 
 config()
 
+const VIDEO_OFFER_SECRET = process.env.VIDEO_OFFER_SECRET
+
 const app = express()
 const port = 8080
 
 const server = http.Server(app)
 const io = new Server(server)
+
+const availableVideoSources = []
+const receiveVideoOffers = []
 
 const mqttClient = mqtt.connect({
   hostname: process.env.MQTT_BROKER_URL || "mqtt://127.0.0.1",
@@ -49,19 +54,24 @@ app.use(bodyParser.text())
 app.post("/login", login)
 app.get("/login", verifyJWT_MW, checkLogin)
 
-app.use("/video_stream/:source", (request, response) => {
-  response.connection.setTimeout(0)
+app.get("/video_sources", verifyJWT_MW, (req, res) => res.send(availableVideoSources))
+
+app.post("/video_offer/:source", (request, response) => {
   const source = request.params.source
-  console.log(`Video stream from "${source}" started`)
+  console.log(`Video stream from '${source}' offered.`)
+  const offer = request.body.offer
+  if (request.body.secret !== VIDEO_OFFER_SECRET) {
+    response.sendStatus(401)
+  }
+  response.send(availableVideoSources)
+  io.of("/video").to(source).emit("offer", offer)
+})
 
-  // Stream of data is received, broadcast to socket listeners
-  request.on("data", data => {
-    io.of(`/video`).to(source).emit("video_data", data)
-  })
-
-  request.on("end", () => {
-    console.log(`Video stream from "${source} ended`)
-  })
+app.post("/receiving_video_offer", verifyJWT_MW, (request) => {
+  console.log("Receiving video offer")
+  const offer = request.body
+  receiveVideoOffers.push(offer)
+  mqttClient.publish("video", "receive_offer_available")
 })
 
 io.of("/video")
@@ -70,9 +80,6 @@ io.of("/video")
     // Add video listeners to specific rooms for each video stream
     const room = socket.handshake.auth.room
     socket.join(room)
-
-    // Tell the video streamer to start streaming!
-    mqttClient.publish(room, "start")
   })
 
 io.of("/robotpi")
@@ -83,4 +90,5 @@ io.of("/robotpi")
     socket.on("*", ({ data }) => mqttClient.publish("robotpi", data[0]))
   })
 
+server.setTimeout(0)
 server.listen(port, () => console.log(`Server listening on ${port}.`))
