@@ -1,4 +1,4 @@
-import { verifyJWT, createJWT, verifyJWT } from "./jwt.js"
+import { verifyJWT, createJWT } from "./jwt.js"
 import btoa from "btoa"
 
 const authorizeUserPassword = userPassword => {
