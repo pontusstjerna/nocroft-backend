@@ -61,33 +61,38 @@ app.get("/login", verifyJWT_MW, checkLogin)
 app.get("/video_sources", verifyJWT_MW, (req, res) => res.send(availableVideoSources))
 
 app.post("/register_video_source", (request, response) => {
-  console.log(request)
   if (request.body.secret !== VIDEO_ANSWER_SECRET) {
     response.sendStatus(401)
   }
 
   availableVideoSources.add(request.body.source)
+  response.sendStatus(204)
 })
 
 app.post("/video_answer/:source", (request, response) => {
   const source = request.params.source
-  console.log(`Video offer to stream '${source}' answered.`)
+
   const answer = request.body.answer
   if (request.body.secret !== VIDEO_ANSWER_SECRET) {
     response.sendStatus(401)
   }
-  response.sendStatus(204)
   const [first, ...rest] = receiveVideoOffers[source] || []
-
+  console.log(`Video offer to stream '${source}' answered, emitting answer to ${source}: ${first.socketId}.`)
   io.of("/video").to(source).to(first.socketId).emit("answer", answer)
   receiveVideoOffers[source] = rest
+  response.sendStatus(204)
 })
 
-app.post("/video_offer/:source", verifyJWT_MW, (request) => {
-  console.log(`Receiving video offer from socket ID ${request.body.socketId}`)
+app.post("/video_offer/:source", verifyJWT_MW, (request, response) => {
+  console.log(`Receiving video offer to source ${request.params.source} from socket ID ${request.body.socketId}`)
   const offer = request.body.offer
-  receiveVideoOffers[request.params.source] = request.body
-  mqttClient.publish(`/video/client_offers/${request.params.source}`, JSON.stringify(request.body.offer))
+  const source = request.params.source
+  if (!receiveVideoOffers[source]) {
+    receiveVideoOffers[source] = []
+  }
+  receiveVideoOffers[source].push(request.body)
+  response.sendStatus(204)
+  mqttClient.publish(`/video/client_offers/${request.params.source}`, JSON.stringify(offer))
 })
 
 io.of("/video")

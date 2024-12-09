@@ -6,6 +6,7 @@ const authorizeUserPassword = userPassword => {
     config => userPassword === btoa(config)
   )
 
+
   if (!maybeUser) {
     return false
   }
@@ -43,9 +44,18 @@ export const ioVerifyJWT_MW = (socket, next) => {
 }
 
 export const checkLogin = (req, res) => {
+  const messages = [
+    `Nämen vad trevligt, ${req.user}! Vi ses igen!`,
+    `Välkommen som in i skogen ${req.user}. Vad ska du hitta på idag?`,
+    "Det var en gång en kräfta som inte hette nåt...",
+    `Är du en katt idag ${req.user} eller är du något annat?`,
+    "Maybe a bit international?",
+    "Hola, qué tal? Qué pasa paradoxx?"
+  ]
+
   res
     .status(200)
     .send(
-      `Welcome ${req.user}, I have missed you. This is the backend calling. :)`
+      messages[Math.floor(Math.random() * messages.length)]
     )
 }
