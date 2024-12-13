@@ -58,7 +58,7 @@ app.use(bodyParser.json())
 app.post("/login", login)
 app.get("/login", verifyJWT_MW, checkLogin)
 
-app.get("/video_sources", verifyJWT_MW, (req, res) => res.send(availableVideoSources))
+app.get("/video_sources", verifyJWT_MW, (req, res) => res.send([...availableVideoSources]))
 
 app.post("/register_video_source", (request, response) => {
   if (request.body.secret !== VIDEO_ANSWER_SECRET) {
