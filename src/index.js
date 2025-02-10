@@ -59,6 +59,11 @@ app.post("/login", login)
 app.get("/login", verifyJWT_MW, checkLogin)
 
 app.get("/video_sources", verifyJWT_MW, (req, res) => res.send([...availableVideoSources]))
+app.get("/turn_config", verifyJWT_MW, (req, res) => res.send({
+  "url": process.env.TURN_URL ?? "",
+  "username": process.env.TURN_USERNAME ?? "",
+  "password": process.env.TURN_PASSWORD ?? ""
+}))
 
 app.post("/register_video_source", (request, response) => {
   if (request.body.secret !== VIDEO_ANSWER_SECRET) {
