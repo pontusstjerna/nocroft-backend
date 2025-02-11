@@ -18,11 +18,8 @@ const port = 8080
 const server = http.Server(app)
 const io = new Server(server)
 
-// TODO: Cleanup after certain time period of silence?
-const availableVideoSources = new Set()
-
-// TODO: Cleanup for sources not available?
-const receiveVideoOffers = {}
+let availableVideoSources = new Set()
+let receiveVideoOffers = {}
 
 const mqttClient = mqtt.connect({
   hostname: process.env.MQTT_BROKER_URL || "mqtt://127.0.0.1",
@@ -119,6 +116,11 @@ io.of("/robotpi")
     // Forward all socket messages to mqtt
     socket.on("*", ({ data }) => mqttClient.publish("robotpi", data[0]))
   })
+
+setInterval(() => {
+  availableVideoSources = new Set()
+  receiveVideoOffers = {}
+}, 3600 * 1000)
 
 server.setTimeout(0)
 server.listen(port, () => console.log(`Server listening on ${port}.`))
